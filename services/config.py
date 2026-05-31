@@ -64,6 +64,7 @@ class BotConfig:
     fragment_wallet_mnemonic: str
     fragment_api_url: str
     fragment_api_mode: str
+    fragment_payment_method: str
     fragment_cookies_base64: Optional[str]
 
     ton_wallet_address: str
@@ -95,14 +96,20 @@ class BotConfig:
             logger.warning("FRAGMENT_API_MODE='{}' неизвестен, использую kyc", api_mode)
             api_mode = "kyc"
 
+        payment_method = os.getenv("FRAGMENT_PAYMENT_METHOD", "ton").strip().lower()
+        if payment_method not in {"ton", "usdt_ton"}:
+            logger.warning("FRAGMENT_PAYMENT_METHOD='{}' неизвестен, использую ton", payment_method)
+            payment_method = "ton"
+
         config = cls(
             bot_token=os.getenv("BOT_TOKEN", ""),
             database_path=os.getenv("DATABASE_PATH", "stars_bot.db"),
             admin_user_ids=_admin_ids(),
             support_username=os.getenv("SUPPORT_USERNAME", "support"),
             fragment_wallet_mnemonic=os.getenv("FRAGMENT_WALLET_MNEMONIC", ""),
-            fragment_api_url=os.getenv("FRAGMENT_API_URL", "https://api-fragment.duckdns.org"),
+            fragment_api_url=os.getenv("FRAGMENT_API_URL", "https://fragment-api.ydns.eu:8443"),
             fragment_api_mode=api_mode,
+            fragment_payment_method=payment_method,
             fragment_cookies_base64=os.getenv("FRAGMENT_COOKIES_BASE64"),
             ton_wallet_address=os.getenv("TON_WALLET_ADDRESS", ""),
             toncenter_api_key=os.getenv("TONCENTER_API_KEY") or os.getenv("TONAPI_KEY"),
@@ -131,6 +138,11 @@ class BotConfig:
             logger.warning(
                 "no_kyc подходит для демо-запуска, но стабильность ниже. "
                 "Основной рекомендуемый режим: FRAGMENT_API_MODE=kyc."
+            )
+        if self.fragment_payment_method == "usdt_ton":
+            logger.warning(
+                "FRAGMENT_PAYMENT_METHOD=usdt_ton: кошелек из FRAGMENT_WALLET_MNEMONIC должен иметь USDT on TON "
+                "и небольшой TON баланс для газа/комиссии API."
             )
         if self.enable_freekassa and (not self.freekassa_api_key or not self.freekassa_shop_id):
             logger.warning(

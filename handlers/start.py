@@ -30,6 +30,7 @@ def welcome_text(config: BotConfig) -> str:
         f"Режим Fragment API: <b>{config.fragment_api_mode}</b>\n"
         "Для реального использования рекомендуется <b>KYC режим</b>: он стабильнее, "
         "потому что API работает с вашей авторизованной Fragment-сессией."
+        f"\nМетод оплаты Fragment: <b>{config.fragment_payment_method}</b>."
     )
 
 
@@ -61,7 +62,8 @@ async def show_help(callback: CallbackQuery) -> None:
         "5. Бот вызывает Fragment API и покупает Stars.\n\n"
         "<b>Важно про Fragment API</b>\n"
         "KYC режим стабильнее no_kyc. Для него заполните FRAGMENT_API_MODE=kyc "
-        "и FRAGMENT_COOKIES_BASE64 из авторизованной Fragment-сессии."
+        "и FRAGMENT_COOKIES_BASE64 из авторизованной Fragment-сессии.\n"
+        "FRAGMENT_PAYMENT_METHOD может быть ton или usdt_ton."
     )
     if config.support_username:
         text += f"\n\nПоддержка: @{config.support_username}"

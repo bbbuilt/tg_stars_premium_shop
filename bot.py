@@ -31,14 +31,16 @@ async def check_fragment_api(config: BotConfig) -> None:
         wallet_mnemonic=config.fragment_wallet_mnemonic,
         api_url=config.fragment_api_url,
         api_mode=config.fragment_api_mode,
+        payment_method=config.fragment_payment_method,
         cookies_base64=config.fragment_cookies_base64,
     )
     health = await fragment.check_health()
 
     if health["ok"]:
         logger.info(
-            "Fragment API доступен: mode={}, url={}, response={}s",
+            "Fragment API доступен: mode={}, payment_method={}, url={}, response={}s",
             config.fragment_api_mode,
+            config.fragment_payment_method,
             config.fragment_api_url,
             health["response_time"],
         )
@@ -86,6 +88,7 @@ async def main() -> None:
             (
                 "🟢 <b>Fragment Stars demo запущен</b>\n"
                 f"Режим API: <b>{config.fragment_api_mode}</b>\n"
+                f"Метод оплаты Fragment: <b>{config.fragment_payment_method}</b>\n"
                 "Рекомендация: <b>KYC режим стабильнее для продакшена</b>."
             ),
         )

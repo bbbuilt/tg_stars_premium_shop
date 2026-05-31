@@ -34,6 +34,7 @@ class PaymentMonitor:
             wallet_mnemonic=config.fragment_wallet_mnemonic,
             api_url=config.fragment_api_url,
             api_mode=config.fragment_api_mode,
+            payment_method=config.fragment_payment_method,
             cookies_base64=config.fragment_cookies_base64,
         )
         self.bot: Optional[Bot] = None

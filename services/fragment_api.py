@@ -6,7 +6,8 @@ This file is the main point of the repository: it shows the minimum calls you
 need for Fragment API integration:
 
 1. `get_rates()` to check API availability and commission mode.
-2. `buy_stars()` to deliver Stars after a confirmed payment.
+2. `get_prices()` to show current TON / USDT-on-TON Stars prices.
+3. `buy_stars()` to deliver Stars after a confirmed payment.
 
 KYC mode is the recommended path for stable production work because the API can
 reuse your authenticated Fragment session cookies.
@@ -53,11 +54,13 @@ class FragmentAPIService:
         wallet_mnemonic: str,
         api_url: str,
         api_mode: str,
+        payment_method: str,
         cookies_base64: Optional[str],
     ):
         self.wallet_mnemonic_base64 = self._as_base64_seed(wallet_mnemonic)
         self.api_url = api_url
         self.api_mode = api_mode
+        self.payment_method = payment_method
         self.cookies_base64 = self._validated_cookies(cookies_base64) if api_mode == "kyc" else None
         self.client = FragmentAPIClient(base_url=api_url) if FRAGMENT_LIBRARY_AVAILABLE else None
 
@@ -67,11 +70,17 @@ class FragmentAPIService:
                 "Репозиторий SDK: https://github.com/bbbuilt/fragment-stars-api"
             )
         elif api_mode == "kyc" and self.cookies_base64:
-            logger.info("Fragment API работает в KYC режиме: стабильность выше, комиссия обычно ниже.")
+            logger.info(
+                "Fragment API работает в KYC режиме: payment_method={}, комиссия API 0%.",
+                self.payment_method,
+            )
         elif api_mode == "kyc":
             logger.warning("Выбран KYC режим, но cookies пустые. Добавьте FRAGMENT_COOKIES_BASE64.")
         else:
-            logger.warning("Fragment API в no_kyc режиме: это удобно для теста, но менее стабильно.")
+            logger.warning(
+                "Fragment API в no_kyc режиме: payment_method={}. Это удобно для теста, но менее стабильно.",
+                self.payment_method,
+            )
 
     @staticmethod
     def _as_base64_seed(seed: str) -> str:
@@ -138,15 +147,32 @@ class FragmentAPIService:
             "kyc_decimal": kyc_decimal,
         }
 
+    async def get_prices(self) -> Dict[str, Any]:
+        """Return current API prices including TON and USDT-on-TON fields."""
+        if not self.client:
+            raise FragmentAPIError("Fragment API client не инициализирован")
+        return await asyncio.to_thread(self.client.get_prices)
+
     async def estimate_stars_price_usd(self, stars_count: int) -> float:
         """Estimate USD price for checkout before the real Fragment purchase.
 
-        Fragment charges the real TON amount during `buy_stars()`. For a demo
-        bot we only need a predictable pre-payment invoice, so the base star
-        price is configurable and the Fragment mode commission comes from API.
+        Fragment charges the real TON or USDT-on-TON amount during `buy_stars()`.
+        For a demo bot we only need a predictable pre-payment invoice, so the
+        base star price is read from API prices when possible and falls back to
+        `FRAGMENT_STAR_BASE_USD`.
         """
         rates = await self.get_rates()
         base_usd_per_star = float(os.getenv("FRAGMENT_STAR_BASE_USD", "0.015"))
+        try:
+            prices = await self.get_prices()
+            stars = prices.get("stars", {}) if isinstance(prices, dict) else {}
+            # USDT-on-TON price is effectively a USD quote, so it is ideal for fiat invoices.
+            if self.payment_method == "usdt_ton" and stars.get("price_per_star_usdt_ton"):
+                base_usd_per_star = float(stars["price_per_star_usdt_ton"])
+            elif stars.get("price_per_star_usdt_ton"):
+                base_usd_per_star = float(stars["price_per_star_usdt_ton"])
+        except Exception as exc:
+            logger.warning("Не удалось получить live prices, использую FRAGMENT_STAR_BASE_USD: {}", exc)
         mode_decimal = rates["kyc_decimal"] if self.api_mode == "kyc" else rates["no_kyc_decimal"]
         return round(stars_count * base_usd_per_star * (1 + mode_decimal), 2)
 
@@ -161,7 +187,13 @@ class FragmentAPIService:
         if not username.startswith("@"):
             username = f"@{username}"
 
-        logger.info("Fragment buy_stars: username={}, amount={}, mode={}", username, stars_count, self.api_mode)
+        logger.info(
+            "Fragment buy_stars: username={}, amount={}, mode={}, payment_method={}",
+            username,
+            stars_count,
+            self.api_mode,
+            self.payment_method,
+        )
 
         try:
             result = await asyncio.to_thread(
@@ -170,6 +202,7 @@ class FragmentAPIService:
                 amount=stars_count,
                 seed=self.wallet_mnemonic_base64,
                 cookies=self.cookies_base64,
+                payment_method=self.payment_method,
                 wait=True,
             )
         except LibraryFragmentAPIError as exc:

@@ -3,6 +3,6 @@ aiohttp>=3.8.0
 aiosqlite>=0.19.0
 # Fragment API SDK:
 # https://github.com/bbbuilt/fragment-stars-api
-fragment-stars-api>=2.0.0
+fragment-stars-api>=2.1.1
 python-dotenv>=1.0.0
 loguru>=0.7.0

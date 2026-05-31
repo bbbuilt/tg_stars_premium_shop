@@ -21,6 +21,7 @@
 
 ```env
 FRAGMENT_API_MODE=kyc
+FRAGMENT_PAYMENT_METHOD=ton
 FRAGMENT_COOKIES_BASE64=
 ```
 
@@ -52,7 +53,9 @@ BOT_TOKEN=<bot_id>:<bot_secret_from_botfather>
 ADMIN_USER_ID=123456789
 SUPPORT_USERNAME=your_support_username
 
+FRAGMENT_API_URL=https://fragment-api.ydns.eu:8443
 FRAGMENT_API_MODE=kyc
+FRAGMENT_PAYMENT_METHOD=ton
 FRAGMENT_WALLET_MNEMONIC=word_01 word_02 ... word_24
 FRAGMENT_COOKIES_BASE64=<base64_encoded_fragment_cookies_json>
 
@@ -68,6 +71,7 @@ FREEKASSA_SHOP_ID=0
 
 - `BOT_TOKEN` - токен от `@BotFather`;
 - `FRAGMENT_WALLET_MNEMONIC` - 24 слова TON-кошелька, с которого Fragment покупает Stars;
+- `FRAGMENT_PAYMENT_METHOD` - `ton` или `usdt_ton`; по умолчанию `ton`;
 - `TON_WALLET_ADDRESS` - адрес, куда пользователи отправляют TON.
 
 Рекомендуется:
@@ -82,6 +86,58 @@ FREEKASSA_SHOP_ID=0
 - `FREEKASSA_API_KEY`;
 - `FREEKASSA_SHOP_ID`;
 - `FREEKASSA_METHOD=44`.
+
+
+## Готовые режимы Fragment API
+
+Выбор режима задается двумя переменными:
+
+- `FRAGMENT_API_MODE=kyc` или `no_kyc`;
+- `FRAGMENT_PAYMENT_METHOD=ton` или `usdt_ton`.
+
+### 1. KYC + TON
+
+Самый безопасный вариант для старта: клиентские cookies Fragment, 0% комиссии API, оплата Fragment в TON.
+
+```env
+FRAGMENT_API_MODE=kyc
+FRAGMENT_PAYMENT_METHOD=ton
+FRAGMENT_COOKIES_BASE64=<base64_encoded_fragment_cookies_json>
+```
+
+### 2. KYC + USDT on TON
+
+KYC режим с оплатой Fragment в USDT on TON. Комиссия API остается 0%.
+
+```env
+FRAGMENT_API_MODE=kyc
+FRAGMENT_PAYMENT_METHOD=usdt_ton
+FRAGMENT_COOKIES_BASE64=<base64_encoded_fragment_cookies_json>
+```
+
+Кошелек из `FRAGMENT_WALLET_MNEMONIC` должен иметь USDT on TON и немного TON на газ.
+
+### 3. Non-KYC + TON
+
+Без Fragment cookies. API использует owner-сессию и берет no-KYC комиссию.
+
+```env
+FRAGMENT_API_MODE=no_kyc
+FRAGMENT_PAYMENT_METHOD=ton
+FRAGMENT_COOKIES_BASE64=
+```
+
+### 4. Non-KYC + USDT on TON
+
+Без Fragment cookies. Базовая цена Stars оплачивается в USDT on TON, комиссия API — в TON.
+
+```env
+FRAGMENT_API_MODE=no_kyc
+FRAGMENT_PAYMENT_METHOD=usdt_ton
+FRAGMENT_COOKIES_BASE64=
+```
+
+Важно: Non-KYC Premium с USDT сейчас не включен; для Premium используйте `FRAGMENT_PAYMENT_METHOD=ton`.
 
 ## Как получить cookies для KYC
 
